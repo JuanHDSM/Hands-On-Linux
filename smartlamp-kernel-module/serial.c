@@ -1,6 +1,8 @@
 #include <linux/module.h>
 #include <linux/usb.h>
 #include <linux/slab.h>
+#include <linux/string.h>
+#include <linux/kernel.h>
 
 MODULE_AUTHOR("DevTITANS <devtitans@icomp.ufam.edu.br>");
 MODULE_DESCRIPTION("Driver de acesso ao SmartLamp (ESP32 com Chip Serial CP2102");
@@ -83,7 +85,7 @@ static int usb_read_serial() {
         }
 
         if( actual_size>0){
-            usb_in_buffer[actual_size] = '\0'; 
+            usb_in_buffer[actual_size] = '\0'; // o final do buffer deve ser nulo para ser uma string válida
             printk(KERN_INFO "SmartLamp: Dados recebidos: %s\n", usb_in_buffer);
 
             if (strncmp(usb_in_buffer, prefix, strlen(prefix)) == 0) {
@@ -102,9 +104,6 @@ static int usb_read_serial() {
             
         }
 
-        //caso tenha recebido a mensagem 'RES_LDR X' via serial acesse o buffer 'usb_in_buffer' e retorne apenas o valor da resposta X
-        //retorne o valor de X em inteiro
-        return 0;
     }
 
     return -1; 
