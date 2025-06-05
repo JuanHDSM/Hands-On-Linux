@@ -71,6 +71,7 @@ static int usb_read_serial() {
     int ret, actual_size;
     int retries = 10; // Tenta algumas vezes receber uma resposta da USB. Depois desiste.
     const char *prefix = "RES GET_LDR "; // Prefixo esperado na resposta do dispositivo
+    int value = 0; // Variável para armazenar o valor LDR extraído
 
     // Espera pela resposta correta do dispositivo (desiste depois de várias tentativas)
     while (retries > 0) {
