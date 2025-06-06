@@ -6,7 +6,7 @@ int ledValue = 0;
 
 int ldrPin = A0; //Definir Pino
 // Faça testes no sensor ldr para encontrar o valor maximo e atribua a variável ldrMax
-int ldrMax = 0;
+int ldrMax = 63;
 
 void setup() {
     Serial.begin(9600);
@@ -15,7 +15,6 @@ void setup() {
     pinMode(ldrPin, INPUT);
     
     Serial.print("SmartLamp Initialized.\n");
-
 
 }
 
@@ -27,18 +26,6 @@ void loop() {
 
 
 void processCommand(String command) {
-    // compare o comando com os comandos possíveis e execute a ação correspondente    
-    
-    if(command.equals("SET_LED")){
-        // Extrair o valor 
-        ledUpdate(0)
-        
-    }
-
-    if (command.equals("GET_LED")) { // Retornar a intensidade atual do LED
-          Serial.printf("RES GET_LED ");
-          Serial.println(ledValue);
-    } 
 
     if (command.equals("GET_LDR")) { 
 
@@ -53,8 +40,6 @@ void processCommand(String command) {
 void ledUpdate(int newvalue) {
     // Valor deve convertar o valor recebido pelo comando SET_LED para 0 e 255
     // Normalize o valor do LED antes de enviar para a porta correspondente
-    int ledNewValue = (newvalue * 255) / 100;
-    analogWrite(ledPin, ledNewValue);
 
 }
 
