@@ -101,7 +101,7 @@ static int usb_read_serial() {
             }
 
             retries--;
-            mssleep(20); 
+            msleep(20); 
             
         }
 
