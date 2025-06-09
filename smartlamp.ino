@@ -6,6 +6,7 @@ int ledValue = 0;
 
 int ldrPin = A0; //Definir Pino
 // Faça testes no sensor ldr para encontrar o valor maximo e atribua a variável ldrMax
+// oi
 int ldrMax = 63;
 
 void setup() {
@@ -57,5 +58,5 @@ int ldrGetValue() {
     int normalized = (lrdValue * 100) / ldrMax;
 
     return normalized;
-  
+    // tet
 }
