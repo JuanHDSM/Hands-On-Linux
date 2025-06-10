@@ -1,7 +1,7 @@
 // Defina os pinos de LED e LDR
 // Defina uma variável com valor máximo do LDR (4000)
 // Defina uma variável para guardar o valor atual do LED (10)
-int ledPin = ; //Definir Pino
+int ledPin; //Definir Pino
 int ledValue = 0; 
 
 int ldrPin = A0; //Definir Pino
@@ -15,13 +15,17 @@ void setup() {
     pinMode(ldrPin, INPUT);
     
     Serial.print("SmartLamp Initialized.\n");
+    
+    String cmd = Serial.readString(); 
+
+    processCommand("GET_LDR");
 
 }
 
 // Função loop será executada infinitamente pelo ESP32
 void loop() {
-      String cmd = Serial.readString();  // Lê string da porta serial
-      processCommand(cmd);  
+      // String cmd = Serial.readString();  // Lê string da porta serial
+      // processCommand(cmd);  
 }
 
 
@@ -30,14 +34,14 @@ void processCommand(String command) {
     if (command.equals("GET_LDR")) { 
 
           int ldrValue = ldrGetValue();
-          Serial.printf("RES GET_LDR ");
+          Serial.print("RES GET_LDR ");
           Serial.println(ldrValue);
     } 
    
 }
 
 // Função para atualizar o valor do LED
-void ledUpdate(int newvalue) {
+void ledUpdate() {
     // Valor deve convertar o valor recebido pelo comando SET_LED para 0 e 255
     // Normalize o valor do LED antes de enviar para a porta correspondente
 
