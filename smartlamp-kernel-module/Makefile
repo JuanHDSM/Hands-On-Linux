@@ -1,4 +1,4 @@
-obj-m += sysfs.o
+obj-m += serial.o
 PWD := $(CURDIR)
 
 all:

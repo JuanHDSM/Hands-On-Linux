@@ -87,7 +87,7 @@ static void usb_disconnect(struct usb_interface *interface) {
 
 static int usb_read_serial() {
     int ret, actual_size;
-    int retries = 1000; // Tenta algumas vezes receber uma resposta da USB. Depois desiste.
+    int retries = 20; // Tenta algumas vezes receber uma resposta da USB. Depois desiste.
     const char *prefix = "RES GET_LDR "; // Prefixo esperado na resposta do dispositivo
     int value = 0; // Variável para armazenar o valor LDR extraído
 
@@ -119,7 +119,7 @@ static int usb_read_serial() {
             }
 
             retries--;
-            ssleep(500); 
+            ssleep(20); 
             
         }
 
