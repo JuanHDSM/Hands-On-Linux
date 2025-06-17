@@ -1,4 +1,4 @@
-obj-m += serial.o
+obj-m += sysfs_esp32new.o
 PWD := $(CURDIR)
 
 all:
