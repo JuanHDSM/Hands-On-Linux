@@ -43,6 +43,8 @@ MODULE_DEVICE_TABLE(usb, id_table);
 
 bool ignore = true;
 int LDR_value = 0;
+int temp_value = 0;
+int hum_value = 0;
 
 static struct usb_driver smartlamp_driver = {
     .name        = "smartlamp",     // Nome do driver
