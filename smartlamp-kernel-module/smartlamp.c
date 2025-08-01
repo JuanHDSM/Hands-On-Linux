@@ -16,13 +16,15 @@ static uint usb_in, usb_out;                       // Endereços das portas de e
 static char *usb_in_buffer, *usb_out_buffer;       // Buffers de entrada e saída da USB
 static int usb_max_size;                           // Tamanho máximo de uma mensagem USB
 
-#define VENDOR_ID   SUBSTITUA_PELO_VENDORID /* Encontre o VendorID  do smartlamp */
-#define PRODUCT_ID  SUBSTITUA_PELO_PRODUCTID /* Encontre o ProductID do smartlamp */
+#define VENDOR_ID   0x1a86
+#define PRODUCT_ID  0x55d4
+
 static const struct usb_device_id id_table[] = { { USB_DEVICE(VENDOR_ID, PRODUCT_ID) }, {} };
 
 static int  usb_probe(struct usb_interface *ifce, const struct usb_device_id *id); // Executado quando o dispositivo é conectado na USB
 static void usb_disconnect(struct usb_interface *ifce);                           // Executado quando o dispositivo USB é desconectado da USB
 static int  usb_read_serial(void);   
+static int  usb_send_cmd(char *cmd, int param);
 
 // Executado quando o arquivo /sys/kernel/smartlamp/{led, ldr} é lido (e.g., cat /sys/kernel/smartlamp/led)
 static ssize_t attr_show(struct kobject *sys_obj, struct kobj_attribute *attr, char *buff);
@@ -69,7 +71,7 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
     usb_out_buffer = kmalloc(usb_max_size, GFP_KERNEL);
     // Verificar se aqui mudar mesmo
     // LDR_value = usb_read_serial();
-    LDR_value = usb_read_serial();
+    LDR_value = usb_send_cmd("GET_LDR", 0);
 
     printk("LDR Value: %d\n", LDR_value);
 
@@ -95,6 +97,10 @@ static int usb_send_cmd(char *cmd, int param) {
     char resp_expected[MAX_RECV_LINE];      // Resposta esperada do comando
     char *resp_pos;                         // Posição na linha lida que contém o número retornado pelo dispositivo
     long resp_number = -1;                  // Número retornado pelo dispositivo (e.g., valor do led, valor do ldr)
+    char *buffer_copy;
+    char *line;
+    char *prefix = cmd;
+    int value;
 
     printk(KERN_INFO "SmartLamp: Enviando comando: %s\n", cmd);
 

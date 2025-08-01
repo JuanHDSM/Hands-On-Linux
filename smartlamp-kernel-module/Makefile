@@ -1,4 +1,4 @@
-obj-m += sysfs_esp32new.o
+obj-m += smartlamp.o
 PWD := $(CURDIR)
 
 all:
