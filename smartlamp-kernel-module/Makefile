@@ -1,4 +1,4 @@
-obj-m += smartlamp.o
+obj-m += smarlamp_esp32ch9102x.o
 PWD := $(CURDIR)
 
 all:
