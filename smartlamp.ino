@@ -19,13 +19,12 @@ void loop() {
     processCommand(command);
     
   }
-  delay(100);
-  num+=100;
+  // delay(100);
+  // num+=100;
 
-  if(num%1000){
-   Serial.printf("ta conectado e funcionando :) \n");
-
-    }
+  // if(num%1000){
+  //  Serial.printf("ta conectado e funcionando :) \n");
+  // }
 }
 
 void processCommand(String command) {

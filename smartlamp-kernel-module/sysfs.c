@@ -9,7 +9,7 @@ MODULE_DESCRIPTION("Driver de acesso ao SmartLamp (ESP32 com Chip Serial CP2102"
 MODULE_LICENSE("GPL");
 
 
-#define MAX_RECV_LINE 100 // Tamanho máximo de uma linha de resposta do dispositvo USB
+#define MAX_RECV_LINE 100 // Tamanho máximo usb_read_serialde uma linha de resposta do dispositvo USB
 #define SMARTLAMP_INTERFACE 1
 
 static struct usb_device *smartlamp_device;        // Referência para o dispositivo USB
