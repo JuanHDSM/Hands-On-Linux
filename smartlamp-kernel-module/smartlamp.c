@@ -8,7 +8,7 @@ MODULE_LICENSE("GPL");
 
 
 #define MAX_RECV_LINE 100 // Tamanho máximo de uma linha de resposta do dispositvo USB
-
+#define SMARTLAMP_INTERFACE 1
 
 static char recv_line[MAX_RECV_LINE];              // Armazena dados vindos da USB até receber um caractere de nova linha '\n'
 static struct usb_device *smartlamp_device;        // Referência para o dispositivo USB
@@ -16,8 +16,9 @@ static uint usb_in, usb_out;                       // Endereços das portas de e
 static char *usb_in_buffer, *usb_out_buffer;       // Buffers de entrada e saída da USB
 static int usb_max_size;                           // Tamanho máximo de uma mensagem USB
 
-#define VENDOR_ID   0x1a86
-#define PRODUCT_ID  0x55d4
+#define VENDOR_ID   0x10C4
+#define PRODUCT_ID  0xEA60
+
 
 static const struct usb_device_id id_table[] = { { USB_DEVICE(VENDOR_ID, PRODUCT_ID) }, {} };
 
@@ -45,6 +46,7 @@ static struct attribute *attrs[] = {
     &hum_attribute.attr,
     NULL
 };
+
 
 static struct attribute_group attr_group    = { .attrs = attrs };
 static struct kobject        *sys_obj;                                             // Executado para ler a saida da porta serial
@@ -104,7 +106,7 @@ static void usb_disconnect(struct usb_interface *interface) {
 // Exemplo de chamada da função usb_send_cmd para SET_LED: usb_send_cmd("SET_LED", 80);
 static int usb_send_cmd(char *cmd, int param) {
     int ret, actual_size;
-    int retries = 30;
+    int retries = 5;
     char resp_expected[MAX_RECV_LINE];
     int value;
 
@@ -115,6 +117,8 @@ static int usb_send_cmd(char *cmd, int param) {
     } else {
         snprintf(usb_out_buffer, usb_max_size, "%s %d\n", cmd, param);
     }
+
+    printk(KERN_INFO "SmartLamp: Comando enviado %s !\n", usb_out_buffer);
 
     ret = usb_bulk_msg(smartlamp_device,
                        usb_sndbulkpipe(smartlamp_device, usb_out),
@@ -130,15 +134,16 @@ static int usb_send_cmd(char *cmd, int param) {
     printk(KERN_INFO "SmartLamp: Comando enviado com sucesso!\n");
 
     // Prefixo esperado com espaço para facilitar o parsing
-    sprintf(resp_expected, "RES %s ", cmd);
+    sprintf(resp_expected, "S %s ", cmd);
 
     while (retries > 0) {
         ret = usb_bulk_msg(smartlamp_device,
                            usb_rcvbulkpipe(smartlamp_device, usb_in),
                            usb_in_buffer,
-                           min(usb_max_size, MAX_RECV_LINE) - 1,
+                           min(usb_max_size, MAX_RECV_LINE),
                            &actual_size,
                            1000);
+
         if (ret) {
             printk(KERN_ERR "SmartLamp: Erro ao ler dados da USB (tentativa %d), codigo %d\n", retries, ret);
             retries--;
