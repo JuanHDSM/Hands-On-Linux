@@ -197,7 +197,7 @@ static void usb_disconnect(struct usb_interface *interface) {
 // Exemplo de chamada da função usb_send_cmd para SET_LED: usb_send_cmd("SET_LED", 80);
 static int usb_send_cmd(char *cmd, int param) {
     int ret, actual_size;
-    int retries = 30;
+    int retries = 5;
     char resp_expected[MAX_RECV_LINE];
     int value;
 
@@ -229,7 +229,7 @@ static int usb_send_cmd(char *cmd, int param) {
         ret = usb_bulk_msg(smartlamp_device,
                            usb_rcvbulkpipe(smartlamp_device, usb_in),
                            usb_in_buffer,
-                           min(usb_max_size, MAX_RECV_LINE) - 1,
+                           min(usb_max_size, MAX_RECV_LINE),
                            &actual_size,
                            1000);
         if (ret) {
