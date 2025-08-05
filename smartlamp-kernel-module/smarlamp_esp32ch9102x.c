@@ -16,9 +16,8 @@ static uint usb_in, usb_out;                       // Endereços das portas de e
 static char *usb_in_buffer, *usb_out_buffer;       // Buffers de entrada e saída da USB
 static int usb_max_size;                           // Tamanho máximo de uma mensagem USB
 
-#define VENDOR_ID   0x10C4
-#define PRODUCT_ID  0xEA60
-
+#define VENDOR_ID   0x1a86
+#define PRODUCT_ID  0x55d4
 
 static const struct usb_device_id id_table[] = { { USB_DEVICE(VENDOR_ID, PRODUCT_ID) }, {} };
 
@@ -36,8 +35,6 @@ static struct kobj_attribute  led_attribute = __ATTR(led, S_IRUGO | S_IWUSR, att
 static struct kobj_attribute  ldr_attribute = __ATTR(ldr, S_IRUGO | S_IWUSR, attr_show, attr_store);
 static struct kobj_attribute temp_attribute = __ATTR(temp, S_IRUGO, attr_show, NULL);
 static struct kobj_attribute hum_attribute  = __ATTR(hum,  S_IRUGO, attr_show, NULL);
-
-
 
 static struct attribute *attrs[] = {
     &led_attribute.attr,
@@ -64,8 +61,35 @@ static struct usb_driver smartlamp_driver = {
 };
 
 module_usb_driver(smartlamp_driver);
-
+// Probe de esp32 do curso devtitans
 // Executado quando o dispositivo é conectado na USB
+// static int usb_probe(struct usb_interface *interface, const struct usb_device_id *id) {
+//     struct usb_endpoint_descriptor *usb_endpoint_in, *usb_endpoint_out;
+
+//     printk(KERN_INFO "SmartLamp: Dispositivo conectado ...\n");
+
+//     // Cria arquivos do /sys/kernel/smartlamp/*
+//     sys_obj = kobject_create_and_add("smartlamp", kernel_kobj);
+//     ignore = sysfs_create_group(sys_obj, &attr_group); // AQUI
+
+//     // Detecta portas e aloca buffers de entrada e saída de dados na USB
+//     smartlamp_device = interface_to_usbdev(interface);
+//     ignore =  usb_find_common_endpoints(interface->cur_altsetting, &usb_endpoint_in, &usb_endpoint_out, NULL, NULL);  // AQUI
+//     usb_max_size = usb_endpoint_maxp(usb_endpoint_in);
+//     usb_in = usb_endpoint_in->bEndpointAddress;
+//     usb_out = usb_endpoint_out->bEndpointAddress;
+//     usb_in_buffer = kmalloc(usb_max_size, GFP_KERNEL);
+//     usb_out_buffer = kmalloc(usb_max_size, GFP_KERNEL);
+//     // Verificar se aqui mudar mesmo
+//     // LDR_value = usb_read_serial();
+//     LDR_value = usb_send_cmd("GET_LDR", 0);
+
+//     printk("LDR Value: %d\n", LDR_value);
+
+//     return 0;
+// }
+
+// Probe de esp pessoal
 static int usb_probe(struct usb_interface *interface, const struct usb_device_id *id) {
     struct usb_endpoint_descriptor *usb_endpoint_in, *usb_endpoint_out;
 
@@ -76,18 +100,85 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
     ignore = sysfs_create_group(sys_obj, &attr_group); // AQUI
 
     // Detecta portas e aloca buffers de entrada e saída de dados na USB
-    smartlamp_device = interface_to_usbdev(interface);
-    ignore =  usb_find_common_endpoints(interface->cur_altsetting, &usb_endpoint_in, &usb_endpoint_out, NULL, NULL);  // AQUI
-    usb_max_size = usb_endpoint_maxp(usb_endpoint_in);
-    usb_in = usb_endpoint_in->bEndpointAddress;
-    usb_out = usb_endpoint_out->bEndpointAddress;
-    usb_in_buffer = kmalloc(usb_max_size, GFP_KERNEL);
-    usb_out_buffer = kmalloc(usb_max_size, GFP_KERNEL);
-    // Verificar se aqui mudar mesmo
-    // LDR_value = usb_read_serial();
-    LDR_value = usb_send_cmd("GET_LDR", -1);
+  struct usb_host_interface *iface_desc;
+    struct usb_endpoint_descriptor *endpoint;
+    int i;
 
-    printk("LDR Value: %d\n", LDR_value);
+    printk(KERN_INFO "SmartLamp: Dispositivo conectado ...\n");
+
+    if (!interface || !interface->cur_altsetting) {
+        printk(KERN_ERR "SmartLamp: Interface ou altsetting inválidos\n");
+        return -ENODEV;
+    }
+
+    iface_desc = interface->cur_altsetting;
+
+    // Verifica se é a interface esperada
+    if (iface_desc->desc.bInterfaceNumber != SMARTLAMP_INTERFACE) {
+        printk(KERN_INFO "SmartLamp: Ignorando interface %d (esperado: %d).\n",
+               iface_desc->desc.bInterfaceNumber, SMARTLAMP_INTERFACE);
+        return -ENODEV;
+    }
+
+    printk(KERN_INFO "SmartLamp: Número de endpoints: %d\n", iface_desc->desc.bNumEndpoints);
+
+    usb_in = 0;
+    usb_out = 0;
+
+    // Busca endpoints bulk IN e OUT
+    for (i = 0; i < iface_desc->desc.bNumEndpoints; ++i) {
+        endpoint = &iface_desc->endpoint[i].desc;
+        printk(KERN_INFO "SmartLamp: Endpoint[%d]: addr=0x%02x, attr=0x%02x\n",
+               i, endpoint->bEndpointAddress, endpoint->bmAttributes);
+
+        if ((endpoint->bmAttributes & USB_ENDPOINT_XFERTYPE_MASK) == USB_ENDPOINT_XFER_BULK) {
+            if (endpoint->bEndpointAddress & USB_DIR_IN)
+                usb_in = endpoint->bEndpointAddress;
+            else
+                usb_out = endpoint->bEndpointAddress;
+        }
+    }
+
+    if (!usb_in || !usb_out) {
+        printk(KERN_ERR "SmartLamp: Endpoints Bulk IN/OUT não encontrados. Dispositivo não suportado.\n");
+        return -ENODEV;
+    }
+
+    smartlamp_device = interface_to_usbdev(interface);
+
+    // Obtém o tamanho máximo do pacote do endpoint IN
+    for (i = 0; i < iface_desc->desc.bNumEndpoints; ++i) {
+        endpoint = &iface_desc->endpoint[i].desc;
+        if (endpoint->bEndpointAddress == usb_in) {
+            usb_max_size = usb_endpoint_maxp(endpoint);
+            break;
+        }
+    }
+
+    if (!usb_max_size) {
+        printk(KERN_ERR "SmartLamp: Falha ao obter tamanho do pacote do endpoint IN.\n");
+        return -ENODEV;
+    }
+
+    // Aloca buffers com espaço extra para o terminador nulo
+    usb_in_buffer = kmalloc(usb_max_size + 1, GFP_KERNEL);
+    usb_out_buffer = kmalloc(usb_max_size, GFP_KERNEL);
+
+    if (!usb_in_buffer || !usb_out_buffer) {
+        printk(KERN_ERR "SmartLamp: Falha na alocação de buffers.\n");
+        kfree(usb_in_buffer);
+        usb_in_buffer = NULL;
+        kfree(usb_out_buffer);
+        usb_out_buffer = NULL;
+        return -ENOMEM;
+    }
+
+    printk(KERN_INFO "SmartLamp: Endpoint IN: 0x%02x, OUT: 0x%02x, tamanho: %d\n",
+           usb_in, usb_out, usb_max_size);
+
+    LDR_value = usb_send_cmd("GET_LDR", -1);
+    printk(KERN_INFO "SmartLamp: Valor LDR: %d\n", LDR_value);
+
 
     return 0;
 }
@@ -118,8 +209,6 @@ static int usb_send_cmd(char *cmd, int param) {
         snprintf(usb_out_buffer, usb_max_size, "%s %d\n", cmd, param);
     }
 
-    printk(KERN_INFO "SmartLamp: Comando enviado %s !\n", usb_out_buffer);
-
     ret = usb_bulk_msg(smartlamp_device,
                        usb_sndbulkpipe(smartlamp_device, usb_out),
                        usb_out_buffer,
@@ -134,7 +223,7 @@ static int usb_send_cmd(char *cmd, int param) {
     printk(KERN_INFO "SmartLamp: Comando enviado com sucesso!\n");
 
     // Prefixo esperado com espaço para facilitar o parsing
-    sprintf(resp_expected, "S %s ", cmd);
+    sprintf(resp_expected, "RES %s ", cmd);
 
     while (retries > 0) {
         ret = usb_bulk_msg(smartlamp_device,
@@ -143,7 +232,6 @@ static int usb_send_cmd(char *cmd, int param) {
                            min(usb_max_size, MAX_RECV_LINE),
                            &actual_size,
                            1000);
-
         if (ret) {
             printk(KERN_ERR "SmartLamp: Erro ao ler dados da USB (tentativa %d), codigo %d\n", retries, ret);
             retries--;
